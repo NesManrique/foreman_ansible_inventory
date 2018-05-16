@@ -265,12 +265,24 @@ class ForemanInventory(object):
         for host in self._get_hosts():
             dns_name = host['name']
 
-            # Create ansible groups for hostgroup
+            # Create ansible groups for nested hostgroups
             group = 'hostgroup'
-            val = host.get('%s_title' % group) or host.get('%s_name' % group)
+            val = host.get('%s_title' % group)
             if val:
-                safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
-                self.push(self.inventory, safe_key, dns_name)
+                nested_groups = val.split('/')
+                for i in range(1,len(nested_groups)+1):
+                    safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, '/'.join(nested_groups[0:i]).lower()))
+                    self.inventory[safe_key].append(dns_name)
+            else:
+                val = host.get('%s_name' % group)
+                if val:
+                    safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
+                    self.inventory[safe_key].append(dns_name)
+            
+            #val = host.get('%s_title' % group) or host.get('%s_name' % group)
+            #if val:
+            #    safe_key = self.to_safe('%s%s_%s' % (self.group_prefix, group, val.lower()))
+            #    self.push(self.inventory, safe_key, dns_name)
 
             # Create ansible groups for environment, location and organization
             for group in ['environment', 'location', 'organization']:
